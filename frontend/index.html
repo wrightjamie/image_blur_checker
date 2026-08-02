@@ -10,7 +10,18 @@
 <body>
     <div class="app-container">
         <header class="glass-header">
-            <h1>Image Analyzer</h1>
+            <div>
+                <h1>Image Analyzer</h1>
+                <div id="scan-progress-container" style="display: none; margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                        <span>Scan Progress:</span>
+                        <span id="scan-progress-text">0 / 0</span>
+                    </div>
+                    <div style="width: 100%; max-width: 300px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                        <div id="scan-progress-bar" style="height: 100%; width: 0%; background: var(--primary-color); transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
             <div class="actions">
                 <button id="scan-btn" class="btn primary">Run Scan in Background</button>
             </div>
@@ -34,11 +45,21 @@
                 <div class="grid" id="blurred-grid">
                     <!-- Cards will be injected here -->
                 </div>
+                <div class="pagination" id="blur-pagination">
+                    <button class="btn secondary" id="blur-prev">Previous</button>
+                    <span id="blur-page-info">Page 1 of 1</span>
+                    <button class="btn secondary" id="blur-next">Next</button>
+                </div>
             </section>
 
             <section id="duplicates-tab" class="tab-content">
                 <div class="duplicates-container" id="duplicates-container">
                     <!-- Duplicate groups will be injected here -->
+                </div>
+                <div class="pagination" id="dup-pagination">
+                    <button class="btn secondary" id="dup-prev">Previous</button>
+                    <span id="dup-page-info">Page 1 of 1</span>
+                    <button class="btn secondary" id="dup-next">Next</button>
                 </div>
             </section>
         </main>

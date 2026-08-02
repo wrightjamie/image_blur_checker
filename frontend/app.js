@@ -1,6 +1,8 @@
-let allImages = [];
-let duplicates = [];
 let currentThreshold = 100;
+let blurPage = 1;
+let dupPage = 1;
+const LIMIT = 50;
+const DUP_LIMIT = 10;
 
 const blurThresholdInput = document.getElementById('blur-threshold');
 const thresholdVal = document.getElementById('threshold-val');
@@ -8,6 +10,21 @@ const blurredGrid = document.getElementById('blurred-grid');
 const duplicatesContainer = document.getElementById('duplicates-container');
 const blurCount = document.getElementById('blur-count');
 const dupCount = document.getElementById('dup-count');
+
+// Progress Bar
+const progContainer = document.getElementById('scan-progress-container');
+const progText = document.getElementById('scan-progress-text');
+const progBar = document.getElementById('scan-progress-bar');
+const scanBtn = document.getElementById('scan-btn');
+
+// Pagination Buttons
+const blurPrev = document.getElementById('blur-prev');
+const blurNext = document.getElementById('blur-next');
+const blurInfo = document.getElementById('blur-page-info');
+
+const dupPrev = document.getElementById('dup-prev');
+const dupNext = document.getElementById('dup-next');
+const dupInfo = document.getElementById('dup-page-info');
 
 // Setup Tabs
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -21,82 +38,81 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// Setup Slider
+// Setup Slider (throttle to avoid spamming API)
+let sliderTimeout;
 blurThresholdInput.addEventListener('input', (e) => {
     currentThreshold = parseFloat(e.target.value);
     thresholdVal.textContent = currentThreshold;
-    renderBlurred();
+    
+    clearTimeout(sliderTimeout);
+    sliderTimeout = setTimeout(() => {
+        blurPage = 1;
+        fetchBlurred();
+    }, 500);
 });
 
 // Setup Scan Button
-document.getElementById('scan-btn').addEventListener('click', async () => {
-    const btn = document.getElementById('scan-btn');
-    const originalText = btn.textContent;
-    btn.textContent = 'Scanning (check back later)...';
-    btn.disabled = true;
-    
+scanBtn.addEventListener('click', async () => {
     try {
         await fetch('/api/scan', { method: 'POST' });
-        
-        // Poll every 3 seconds for updates, or just reload after a bit.
-        // For simplicity we will just tell the user scan started and fetch once after 3 seconds.
-        setTimeout(async () => {
-            await fetchData();
-            btn.textContent = originalText;
-            btn.disabled = false;
-        }, 3000);
+        pollStatus();
     } catch(err) {
         console.error(err);
-        btn.textContent = originalText;
-        btn.disabled = false;
     }
 });
 
-async function fetchData() {
+// Pagination listeners
+blurPrev.addEventListener('click', () => { if (blurPage > 1) { blurPage--; fetchBlurred(); } });
+blurNext.addEventListener('click', () => { blurPage++; fetchBlurred(); });
+
+dupPrev.addEventListener('click', () => { if (dupPage > 1) { dupPage--; fetchDuplicates(); } });
+dupNext.addEventListener('click', () => { dupPage++; fetchDuplicates(); });
+
+async function fetchBlurred() {
     try {
-        const res = await fetch('/api/images');
+        const res = await fetch(`/api/images/blurred?page=${blurPage}&limit=${LIMIT}&threshold=${currentThreshold}`);
         const data = await res.json();
-        allImages = data.images.filter(img => !img.is_ignored);
-        duplicates = data.duplicates.map(group => group.filter(img => !img.is_ignored)).filter(g => g.length > 1);
         
-        renderBlurred();
-        renderDuplicates();
+        blurCount.textContent = data.total;
+        blurInfo.textContent = `Page ${data.page} of ${data.total_pages || 1}`;
+        blurPrev.disabled = data.page <= 1;
+        blurNext.disabled = data.page >= data.total_pages;
+        
+        blurredGrid.innerHTML = '';
+        data.images.forEach(img => {
+            blurredGrid.appendChild(createCard(img));
+        });
     } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error(err);
     }
 }
 
-function renderBlurred() {
-    const blurred = allImages.filter(img => img.blur_score < currentThreshold);
-    blurCount.textContent = blurred.length;
-    
-    blurredGrid.innerHTML = '';
-    blurred.forEach(img => {
-        const card = createCard(img);
-        blurredGrid.appendChild(card);
-    });
-}
-
-function renderDuplicates() {
-    let count = 0;
-    duplicatesContainer.innerHTML = '';
-    duplicates.forEach((group, index) => {
-        count += group.length;
-        const groupEl = document.createElement('div');
-        groupEl.className = 'duplicate-group';
-        groupEl.innerHTML = `<h3>Duplicate Group ${index + 1} (${group.length} items)</h3>`;
+async function fetchDuplicates() {
+    try {
+        const res = await fetch(`/api/images/duplicates?page=${dupPage}&limit=${DUP_LIMIT}`);
+        const data = await res.json();
         
-        const grid = document.createElement('div');
-        grid.className = 'duplicate-grid';
+        dupCount.textContent = data.total_groups + " groups";
+        dupInfo.textContent = `Page ${data.page} of ${data.total_pages || 1}`;
+        dupPrev.disabled = data.page <= 1;
+        dupNext.disabled = data.page >= data.total_pages;
         
-        group.forEach(img => {
-            grid.appendChild(createCard(img));
+        duplicatesContainer.innerHTML = '';
+        data.duplicates.forEach((group, index) => {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'duplicate-group';
+            groupEl.innerHTML = `<h3>Duplicate Group ${((data.page-1)*data.limit) + index + 1} (${group.length} items)</h3>`;
+            
+            const grid = document.createElement('div');
+            grid.className = 'duplicate-grid';
+            
+            group.forEach(img => grid.appendChild(createCard(img)));
+            groupEl.appendChild(grid);
+            duplicatesContainer.appendChild(groupEl);
         });
-        
-        groupEl.appendChild(grid);
-        duplicatesContainer.appendChild(groupEl);
-    });
-    dupCount.textContent = count;
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 function createCard(img) {
@@ -120,25 +136,43 @@ function createCard(img) {
 
 window.deleteImage = async function(path) {
     if (!confirm('Are you sure you want to permanently delete this image from your filesystem?')) return;
-    
     try {
         await fetch(`/api/images/${encodeURIComponent(path)}`, { method: 'DELETE' });
-        fetchData();
-    } catch(err) {
-        alert('Failed to delete image');
-    }
+        fetchBlurred();
+        fetchDuplicates();
+    } catch(err) { alert('Failed to delete image'); }
 }
 
 window.ignoreImage = async function(path) {
     try {
         await fetch(`/api/images/${encodeURIComponent(path)}/ignore`, { method: 'POST' });
-        fetchData();
-    } catch(err) {
-        alert('Failed to ignore image');
-    }
+        fetchBlurred();
+        fetchDuplicates();
+    } catch(err) { alert('Failed to ignore image'); }
+}
+
+async function pollStatus() {
+    try {
+        const res = await fetch('/api/status');
+        const status = await res.json();
+        
+        if (status.is_scanning) {
+            progContainer.style.display = 'block';
+            scanBtn.disabled = true;
+            progText.textContent = `${status.processed_files} / ${status.total_files}`;
+            const pct = status.total_files > 0 ? (status.processed_files / status.total_files) * 100 : 0;
+            progBar.style.width = `${pct}%`;
+        } else {
+            progContainer.style.display = 'none';
+            scanBtn.disabled = false;
+        }
+    } catch(err) {}
 }
 
 // Initial fetch
-fetchData();
-// Poll every 10 seconds just in case background scan finds things
-setInterval(fetchData, 10000);
+fetchBlurred();
+fetchDuplicates();
+pollStatus();
+
+setInterval(pollStatus, 3000);
+

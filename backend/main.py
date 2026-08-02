@@ -38,20 +38,59 @@ def startup_event():
 def read_root():
     return FileResponse("frontend/index.html")
 
-@app.get("/api/images")
-def get_images():
-    images = list(scanner.state.images.values())
+import math
+
+@app.get("/api/status")
+def get_status():
+    return {
+        "is_scanning": scanner.state.is_scanning,
+        "total_files": scanner.state.total_files,
+        "processed_files": scanner.state.processed_files
+    }
+
+@app.get("/api/images/blurred")
+def get_blurred_images(page: int = 1, limit: int = 50, threshold: float = 100.0):
+    images = [img for img in scanner.state.images.values() if not img.is_ignored and img.blur_score < threshold]
+    # sort by blur score ascending (most blurred first)
+    images.sort(key=lambda x: x.blur_score)
     
-    # Calculate duplicates
+    total = len(images)
+    total_pages = math.ceil(total / limit)
+    start = (page - 1) * limit
+    end = start + limit
+    paginated = images[start:end]
+    
+    return {
+        "images": paginated,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages
+    }
+
+@app.get("/api/images/duplicates")
+def get_duplicate_images(page: int = 1, limit: int = 10):
+    images = [img for img in scanner.state.images.values() if not img.is_ignored]
+    
     hash_map = defaultdict(list)
     for img in images:
         hash_map[img.file_hash].append(img)
         
     duplicates = [group for group in hash_map.values() if len(group) > 1]
+    duplicates.sort(key=lambda g: (-len(g), g[0].path))
+    
+    total = len(duplicates)
+    total_pages = math.ceil(total / limit)
+    start = (page - 1) * limit
+    end = start + limit
+    paginated = duplicates[start:end]
     
     return {
-        "images": images,
-        "duplicates": duplicates
+        "duplicates": paginated,
+        "total_groups": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages
     }
 
 @app.post("/api/scan")
