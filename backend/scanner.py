@@ -5,7 +5,12 @@ import json
 from pathlib import Path
 from backend.models import ScanState, ImageDetail
 
+import gc
+
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff'}
+
+# Disable OpenCV multithreading which can reserve huge memory pools on NAS devices
+cv2.setNumThreads(1)
 
 def calculate_file_hash(filepath: str) -> str:
     hasher = hashlib.sha256()
@@ -23,7 +28,12 @@ def calculate_blur_score(filepath: str) -> float:
         return 10000.0 # Cannot read, assume not blurred to avoid false positives
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     fm = cv2.Laplacian(gray, cv2.CV_64F).var()
-    return float(fm)
+    score = float(fm)
+    
+    # Explicitly clear massive numpy arrays to prevent memory leaks
+    del gray
+    del image
+    return score
 
 class Scanner:
     def __init__(self, image_dir: str, state_file: str):
@@ -97,9 +107,10 @@ class Scanner:
             
             self.state.processed_files = i + 1
             
-            # Periodic save every 500 images
+            # Periodic save and garbage collection every 500 images
             if (i + 1) % 500 == 0:
                 self.save_state()
+                gc.collect()
         
         # Remove deleted files from state
         to_remove = []
