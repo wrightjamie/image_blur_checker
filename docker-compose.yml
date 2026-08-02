@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the folder you want to scan here.
+      # Replace './sample_images' with the absolute path on your host machine
+      - ./sample_images:/images
+      # Persist application state (ignored images, blur levels)
+      - ./app_data:/app/data
+    restart: unless-stopped
+    environment:
+      - IMAGE_DIR=/images
+      - STATE_FILE=/app/data/state.json

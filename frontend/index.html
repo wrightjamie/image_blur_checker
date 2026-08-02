@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Analyzer Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="glass-header">
+            <h1>Image Analyzer</h1>
+            <div class="actions">
+                <button id="scan-btn" class="btn primary">Run Scan in Background</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="controls-section glass-panel">
+                <div class="control-group">
+                    <label for="blur-threshold">Blur Threshold: <span id="threshold-val">100</span></label>
+                    <input type="range" id="blur-threshold" min="0" max="1000" step="10" value="100">
+                    <small>Images with a blur score (variance) below this value are considered blurred.</small>
+                </div>
+            </section>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="blurred">Blurred Images (<span id="blur-count">0</span>)</button>
+                <button class="tab-btn" data-tab="duplicates">Duplicates (<span id="dup-count">0</span>)</button>
+            </div>
+
+            <section id="blurred-tab" class="tab-content active">
+                <div class="grid" id="blurred-grid">
+                    <!-- Cards will be injected here -->
+                </div>
+            </section>
+
+            <section id="duplicates-tab" class="tab-content">
+                <div class="duplicates-container" id="duplicates-container">
+                    <!-- Duplicate groups will be injected here -->
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

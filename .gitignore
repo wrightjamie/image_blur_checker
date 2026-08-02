@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Application Data
+sample_images/
+app_data/
+
+# OS Files
+.DS_Store
+Thumbs.db
