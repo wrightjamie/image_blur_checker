@@ -12,11 +12,11 @@ services:
     volumes:
       # Map your Synology Photo or image folder here.
       # For example, if your photos are in /volume1/photo on your NAS:
-      - /volume1/photo:/images
+      - /volume2/photo:/images
       
       # Map the application state to a persistent folder on your NAS
       # For example, create a folder in /volume1/docker/image-analyzer-data
-      - /volume1/docker/image-analyzer-data:/app/data
+      - /volume2/docker/image-analyzer-data:/app/data
     restart: always
     environment:
       - IMAGE_DIR=/images
