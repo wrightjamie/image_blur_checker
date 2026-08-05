@@ -192,7 +192,43 @@ async function pollStatus() {
     } catch(err) {}
 }
 
+// Settings Logic
+const ignorePatternsText = document.getElementById('ignore-patterns');
+const saveSettingsBtn = document.getElementById('save-settings-btn');
+const settingsStatus = document.getElementById('settings-status');
+
+async function fetchSettings() {
+    try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        ignorePatternsText.value = data.ignore_patterns.join('\n');
+    } catch(err) {
+        console.error("Failed to load settings", err);
+    }
+}
+
+saveSettingsBtn.addEventListener('click', async () => {
+    try {
+        const patterns = ignorePatternsText.value.split('\n').filter(p => p.trim());
+        await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ignore_patterns: patterns })
+        });
+        
+        settingsStatus.style.opacity = '1';
+        setTimeout(() => settingsStatus.style.opacity = '0', 2000);
+        
+        // Refetch grid to clear retroactively deleted ones
+        fetchBlurred();
+        fetchDuplicates();
+    } catch(err) {
+        alert("Failed to save settings");
+    }
+});
+
 // Initial fetch
+fetchSettings();
 fetchBlurred();
 fetchDuplicates();
 pollStatus();

@@ -141,3 +141,19 @@ def serve_image(path: str):
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(full_path)
+
+from pydantic import BaseModel
+class SettingsUpdate(BaseModel):
+    ignore_patterns: list[str]
+
+@app.get("/api/settings")
+def get_settings():
+    return {"ignore_patterns": scanner.state.ignore_patterns}
+
+@app.post("/api/settings")
+def update_settings(settings: SettingsUpdate):
+    # filter empty strings
+    patterns = [p.strip() for p in settings.ignore_patterns if p.strip()]
+    scanner.state.ignore_patterns = patterns
+    scanner.save_state()
+    return {"status": "Settings updated", "ignore_patterns": scanner.state.ignore_patterns}

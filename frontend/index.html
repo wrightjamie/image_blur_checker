@@ -39,6 +39,7 @@
             <div class="tabs">
                 <button class="tab-btn active" data-tab="blurred">Blurred Images (<span id="blur-count">0</span>)</button>
                 <button class="tab-btn" data-tab="duplicates">Duplicates (<span id="dup-count">0</span>)</button>
+                <button class="tab-btn" data-tab="settings">Settings</button>
             </div>
 
             <section id="blurred-tab" class="tab-content active">
@@ -60,6 +61,19 @@
                     <button class="btn secondary" id="dup-prev">Previous</button>
                     <span id="dup-page-info">Page 1 of 1</span>
                     <button class="btn secondary" id="dup-next">Next</button>
+                </div>
+            </section>
+
+            <section id="settings-tab" class="tab-content">
+                <div class="glass-panel" style="max-width: 600px; padding: 20px;">
+                    <h3>Ignore Patterns (Wildcards)</h3>
+                    <p style="font-size: 0.9rem; color: #ccc; margin-bottom: 15px;">
+                        Add file or folder patterns to skip during the scan. Enter one pattern per line.<br>
+                        Example: <code>*/@eaDir/*</code> or <code>*.thumbnail</code>
+                    </p>
+                    <textarea id="ignore-patterns" rows="6" style="width: 100%; padding: 10px; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; margin-bottom: 15px; resize: vertical;"></textarea>
+                    <button id="save-settings-btn" class="btn primary">Save Settings</button>
+                    <span id="settings-status" style="margin-left: 10px; color: #4ade80; opacity: 0; transition: opacity 0.3s;">Saved!</span>
                 </div>
             </section>
         </main>

@@ -14,6 +14,7 @@ class ScanState(BaseModel):
     is_scanning: bool = False
     total_files: int = 0
     processed_files: int = 0
+    ignore_patterns: List[str] = ["*/@eaDir/*"]
 
 class PaginatedImages(BaseModel):
     images: List[ImageDetail]
