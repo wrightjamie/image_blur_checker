@@ -55,10 +55,17 @@ def get_blurred_images(page: int = 1, limit: int = 50, threshold: float = 100.0)
     images.sort(key=lambda x: x.blur_score)
     
     total = len(images)
-    total_pages = math.ceil(total / limit)
+    total_pages = math.ceil(total / limit) if total > 0 else 1
     start = (page - 1) * limit
     end = start + limit
     paginated = images[start:end]
+    
+    for img in paginated:
+        if img.filesize == 0:
+            try:
+                img.filesize = os.path.getsize(os.path.join(IMAGE_DIR, img.path))
+            except OSError:
+                pass
     
     return {
         "images": paginated,
@@ -80,10 +87,18 @@ def get_duplicate_images(page: int = 1, limit: int = 10):
     duplicates.sort(key=lambda g: (-len(g), g[0].path))
     
     total = len(duplicates)
-    total_pages = math.ceil(total / limit)
+    total_pages = math.ceil(total / limit) if total > 0 else 1
     start = (page - 1) * limit
     end = start + limit
     paginated = duplicates[start:end]
+    
+    for group in paginated:
+        for img in group:
+            if img.filesize == 0:
+                try:
+                    img.filesize = os.path.getsize(os.path.join(IMAGE_DIR, img.path))
+                except OSError:
+                    pass
     
     return {
         "duplicates": paginated,

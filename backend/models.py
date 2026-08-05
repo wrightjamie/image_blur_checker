@@ -7,6 +7,7 @@ class ImageDetail(BaseModel):
     file_hash: str
     blur_score: float
     is_ignored: bool = False
+    filesize: int = 0
 
 class ScanState(BaseModel):
     images: Dict[str, ImageDetail] = {}

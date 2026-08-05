@@ -11,6 +11,23 @@ const duplicatesContainer = document.getElementById('duplicates-container');
 const blurCount = document.getElementById('blur-count');
 const dupCount = document.getElementById('dup-count');
 
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function getThresholdFromSlider(sliderVal) {
+    let ratio = sliderVal / 100;
+    return Math.round(Math.pow(ratio, 3) * 2000);
+}
+
+// Initial setup from HTML value
+currentThreshold = getThresholdFromSlider(parseFloat(blurThresholdInput.value));
+thresholdVal.textContent = currentThreshold;
+
 // Progress Bar
 const progContainer = document.getElementById('scan-progress-container');
 const progText = document.getElementById('scan-progress-text');
@@ -41,7 +58,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // Setup Slider (throttle to avoid spamming API)
 let sliderTimeout;
 blurThresholdInput.addEventListener('input', (e) => {
-    currentThreshold = parseFloat(e.target.value);
+    currentThreshold = getThresholdFromSlider(parseFloat(e.target.value));
     thresholdVal.textContent = currentThreshold;
     
     clearTimeout(sliderTimeout);
@@ -124,7 +141,13 @@ function createCard(img) {
         </div>
         <div class="card-content">
             <div class="card-title" title="${img.path}">${img.filename}</div>
-            <div class="card-meta">Blur Score: ${img.blur_score.toFixed(1)}</div>
+            <div class="card-meta">
+                <div title="${img.path}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; margin-bottom: 2px;">
+                    Path: ${img.path}
+                </div>
+                <div style="font-size: 0.8rem; margin-bottom: 2px;">Size: ${formatBytes(img.filesize || 0)}</div>
+                <div style="font-size: 0.8rem;">Blur Score: ${img.blur_score.toFixed(1)}</div>
+            </div>
             <div class="card-actions">
                 <button class="btn secondary" onclick="ignoreImage('${img.path}')">Ignore</button>
                 <button class="btn danger" onclick="deleteImage('${img.path}')">Delete</button>

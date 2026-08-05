@@ -94,13 +94,15 @@ class Scanner:
                 try:
                     file_hash = calculate_file_hash(filepath)
                     blur_score = calculate_blur_score(filepath)
+                    filesize = os.path.getsize(filepath)
                     
                     self.state.images[rel_path] = ImageDetail(
                         path=rel_path,
                         filename=os.path.basename(filepath),
                         file_hash=file_hash,
                         blur_score=blur_score,
-                        is_ignored=False
+                        is_ignored=False,
+                        filesize=filesize
                     )
                 except Exception as e:
                     print(f"Failed to process {rel_path}: {e}")
