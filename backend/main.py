@@ -9,6 +9,16 @@ from backend.scanner import Scanner
 
 app = FastAPI()
 
+APP_VERSION = "v1.1.0"
+APP_CHANGELOG = [
+    "Added logarithmic blur slider",
+    "Display file size and paths on image cards",
+    "Lazily calculate file sizes for backward compatibility",
+    "Added Settings tab with wildcard ignore functionality",
+    "Fixed OpenCV memory leak by disabling multithreading and aggressive GC",
+    "Upgraded OpenCV to 4.10+ to fix NumPy 2.x incompatibility"
+]
+
 IMAGE_DIR = os.getenv("IMAGE_DIR", "./sample_images")
 STATE_FILE = os.getenv("STATE_FILE", "./app_data/state.json")
 
@@ -29,6 +39,12 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 @app.on_event("startup")
 def startup_event():
+    print(f"==========================================")
+    print(f" Starting Image Analyzer {APP_VERSION}")
+    print(f"==========================================")
+    for change in APP_CHANGELOG:
+        print(f" - {change}")
+        
     # Run an initial background scan on startup just to be sure we have some state
     # if it's completely empty.
     if not scanner.state.images:
@@ -157,3 +173,10 @@ def update_settings(settings: SettingsUpdate):
     scanner.state.ignore_patterns = patterns
     scanner.save_state()
     return {"status": "Settings updated", "ignore_patterns": scanner.state.ignore_patterns}
+
+@app.get("/api/version")
+def get_version():
+    return {
+        "version": APP_VERSION,
+        "changelog": APP_CHANGELOG
+    }

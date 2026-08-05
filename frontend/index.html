@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Analyzer Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=1.1.0">
 </head>
 <body>
     <div class="app-container">
         <header class="glass-header">
             <div>
-                <h1>Image Analyzer</h1>
+                <h1>Image Analyzer <span id="app-version-badge" style="font-size: 0.8rem; font-weight: normal; background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 12px; margin-left: 10px; opacity: 0.8;"></span></h1>
                 <div id="scan-progress-container" style="display: none; margin-top: 10px;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
                         <span>Scan Progress:</span>
@@ -78,6 +78,6 @@
             </section>
         </main>
     </div>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=1.1.0"></script>
 </body>
 </html>

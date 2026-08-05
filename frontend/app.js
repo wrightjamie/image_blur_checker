@@ -227,7 +227,22 @@ saveSettingsBtn.addEventListener('click', async () => {
     }
 });
 
+async function fetchVersion() {
+    try {
+        const res = await fetch('/api/version');
+        const data = await res.json();
+        const badge = document.getElementById('app-version-badge');
+        if (badge) badge.textContent = data.version;
+        
+        console.log(`=== Image Analyzer ${data.version} ===`);
+        console.log("Latest Changes:");
+        data.changelog.forEach(change => console.log(` - ${change}`));
+        console.log("===============================");
+    } catch(err) {}
+}
+
 // Initial fetch
+fetchVersion();
 fetchSettings();
 fetchBlurred();
 fetchDuplicates();
