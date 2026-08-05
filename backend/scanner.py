@@ -106,6 +106,13 @@ class Scanner:
                     )
                 except Exception as e:
                     print(f"Failed to process {rel_path}: {e}")
+            else:
+                # Heal missing filesize for old images
+                if self.state.images[rel_path].filesize == 0:
+                    try:
+                        self.state.images[rel_path].filesize = os.path.getsize(filepath)
+                    except OSError:
+                        pass
             
             self.state.processed_files = i + 1
             
