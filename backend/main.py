@@ -5,12 +5,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import threading
 from collections import defaultdict
+import fnmatch
 from backend.scanner import Scanner
 
 app = FastAPI()
 
-APP_VERSION = "v1.1.0"
+APP_VERSION = "v1.2.0"
 APP_CHANGELOG = [
+    "Refactored ignore folder logic to scan all images and dynamically filter them on the frontend",
     "Added logarithmic blur slider",
     "Display file size and paths on image cards",
     "Lazily calculate file sizes for backward compatibility",
@@ -64,9 +66,20 @@ def get_status():
         "processed_files": scanner.state.processed_files
     }
 
+def is_folder_ignored(path: str, patterns: list[str]) -> bool:
+    for pattern in patterns:
+        if fnmatch.fnmatch(path, pattern):
+            return True
+    return False
+
 @app.get("/api/images/blurred")
 def get_blurred_images(page: int = 1, limit: int = 50, threshold: float = 100.0):
-    images = [img for img in scanner.state.images.values() if not img.is_ignored and img.blur_score < threshold]
+    images = [
+        img for img in scanner.state.images.values() 
+        if not img.is_ignored 
+        and not is_folder_ignored(img.path, scanner.state.ignore_patterns) 
+        and img.blur_score < threshold
+    ]
     # sort by blur score ascending (most blurred first)
     images.sort(key=lambda x: x.blur_score)
     
@@ -93,7 +106,11 @@ def get_blurred_images(page: int = 1, limit: int = 50, threshold: float = 100.0)
 
 @app.get("/api/images/duplicates")
 def get_duplicate_images(page: int = 1, limit: int = 10):
-    images = [img for img in scanner.state.images.values() if not img.is_ignored]
+    images = [
+        img for img in scanner.state.images.values() 
+        if not img.is_ignored
+        and not is_folder_ignored(img.path, scanner.state.ignore_patterns)
+    ]
     
     hash_map = defaultdict(list)
     for img in images:
@@ -171,17 +188,6 @@ def update_settings(settings: SettingsUpdate):
     # filter empty strings
     patterns = [p.strip() for p in settings.ignore_patterns if p.strip()]
     scanner.state.ignore_patterns = patterns
-    
-    import fnmatch
-    retro_remove = []
-    for rel_path in scanner.state.images:
-        for pattern in patterns:
-            if fnmatch.fnmatch(rel_path, pattern):
-                retro_remove.append(rel_path)
-                break
-    for rel_path in retro_remove:
-        del scanner.state.images[rel_path]
-        
     scanner.save_state()
     return {"status": "Settings updated", "ignore_patterns": scanner.state.ignore_patterns}
 

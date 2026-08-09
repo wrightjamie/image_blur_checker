@@ -72,16 +72,6 @@ class Scanner:
         self.state.processed_files = 0
         self.save_state()
         
-        # Retroactively remove existing images that now match an ignore pattern
-        retro_remove = []
-        for rel_path in self.state.images:
-            for pattern in self.state.ignore_patterns:
-                if fnmatch.fnmatch(rel_path, pattern):
-                    retro_remove.append(rel_path)
-                    break
-        for rel_path in retro_remove:
-            del self.state.images[rel_path]
-        
         # Pre-count total files
         file_list = []
         for root, _, files in os.walk(self.image_dir):
@@ -92,15 +82,7 @@ class Scanner:
                     # Use forward slashes for matching patterns predictably
                     rel_path = os.path.relpath(filepath, self.image_dir).replace('\\', '/')
                     
-                    # Check ignore patterns
-                    ignored = False
-                    for pattern in self.state.ignore_patterns:
-                        if fnmatch.fnmatch(rel_path, pattern):
-                            ignored = True
-                            break
-                            
-                    if not ignored:
-                        file_list.append((filepath, rel_path))
+                    file_list.append((filepath, rel_path))
                     
         self.state.total_files = len(file_list)
         self.save_state()
