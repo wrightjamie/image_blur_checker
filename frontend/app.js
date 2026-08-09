@@ -85,6 +85,27 @@ scanBtn.addEventListener('click', async () => {
     }
 });
 
+const checkFilesBtn = document.getElementById('check-files-btn');
+if (checkFilesBtn) {
+    checkFilesBtn.addEventListener('click', async () => {
+        try {
+            checkFilesBtn.disabled = true;
+            checkFilesBtn.textContent = 'Checking...';
+            const res = await fetch('/api/check-files', { method: 'POST' });
+            const data = await res.json();
+            alert(`Database check complete. Removed ${data.removed_count} missing files.`);
+            fetchBlurred();
+            fetchDuplicates();
+        } catch(err) {
+            console.error(err);
+            alert('Failed to check files');
+        } finally {
+            checkFilesBtn.disabled = false;
+            checkFilesBtn.textContent = 'Check Files';
+        }
+    });
+}
+
 // Pagination listeners
 blurPrev.addEventListener('click', () => { if (blurPage > 1) { blurPage--; fetchBlurred(); } });
 blurNext.addEventListener('click', () => { blurPage++; fetchBlurred(); });

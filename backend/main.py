@@ -146,6 +146,20 @@ def trigger_scan():
     threading.Thread(target=scanner.scan).start()
     return {"status": "Scan started in background"}
 
+@app.post("/api/check-files")
+def check_files():
+    missing_paths = []
+    for path in list(scanner.state.images.keys()):
+        full_path = os.path.join(IMAGE_DIR, path)
+        if not os.path.exists(full_path):
+            missing_paths.append(path)
+            del scanner.state.images[path]
+    
+    if missing_paths:
+        scanner.save_state()
+        
+    return {"status": "Database checked", "removed_count": len(missing_paths)}
+
 @app.delete("/api/images/{path:path}")
 def delete_image(path: str):
     if path not in scanner.state.images:
