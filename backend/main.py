@@ -76,7 +76,7 @@ def is_folder_ignored(path: str, patterns: list[str]) -> bool:
 def get_blurred_images(page: int = 1, limit: int = 50, threshold: float = 100.0):
     images = [
         img for img in scanner.state.images.values() 
-        if not img.is_ignored 
+        if not img.ignore_blur 
         and not is_folder_ignored(img.path, scanner.state.ignore_patterns) 
         and img.blur_score < threshold
     ]
@@ -108,7 +108,7 @@ def get_blurred_images(page: int = 1, limit: int = 50, threshold: float = 100.0)
 def get_duplicate_images(page: int = 1, limit: int = 10):
     images = [
         img for img in scanner.state.images.values() 
-        if not img.is_ignored
+        if not img.ignore_duplicate
         and not is_folder_ignored(img.path, scanner.state.ignore_patterns)
     ]
     
@@ -174,13 +174,59 @@ def delete_image(path: str):
     return {"status": "Deleted"}
 
 @app.post("/api/images/{path:path}/ignore")
-def ignore_image(path: str):
+def ignore_image(path: str, type: str = "blur"):
     if path not in scanner.state.images:
         raise HTTPException(status_code=404, detail="Image not found in state")
     
-    scanner.state.images[path].is_ignored = True
+    if type == "duplicate":
+        scanner.state.images[path].ignore_duplicate = True
+    else:
+        scanner.state.images[path].ignore_blur = True
+        
     scanner.save_state()
     return {"status": "Ignored"}
+
+@app.post("/api/images/{path:path}/unignore")
+def unignore_image(path: str, type: str = "blur"):
+    if path not in scanner.state.images:
+        raise HTTPException(status_code=404, detail="Image not found in state")
+    
+    if type == "duplicate":
+        scanner.state.images[path].ignore_duplicate = False
+    else:
+        scanner.state.images[path].ignore_blur = False
+        
+    scanner.save_state()
+    return {"status": "Unignored"}
+
+@app.get("/api/images/ignored")
+def get_ignored_images(page: int = 1, limit: int = 50, type: str = "blur"):
+    images = [
+        img for img in scanner.state.images.values() 
+        if (img.ignore_blur if type == "blur" else img.ignore_duplicate)
+        and not is_folder_ignored(img.path, scanner.state.ignore_patterns)
+    ]
+    
+    total = len(images)
+    total_pages = math.ceil(total / limit) if total > 0 else 1
+    start = (page - 1) * limit
+    end = start + limit
+    paginated = images[start:end]
+    
+    for img in paginated:
+        if img.filesize == 0:
+            try:
+                img.filesize = os.path.getsize(os.path.join(IMAGE_DIR, img.path))
+            except OSError:
+                pass
+    
+    return {
+        "images": paginated,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages
+    }
 
 @app.get("/api/serve-image/{path:path}")
 def serve_image(path: str):

@@ -1,6 +1,8 @@
 let currentThreshold = 100;
 let blurPage = 1;
 let dupPage = 1;
+let ignoredPage = 1;
+let ignoredType = 'blur';
 const LIMIT = 50;
 const DUP_LIMIT = 10;
 
@@ -8,8 +10,12 @@ const blurThresholdInput = document.getElementById('blur-threshold');
 const thresholdVal = document.getElementById('threshold-val');
 const blurredGrid = document.getElementById('blurred-grid');
 const duplicatesContainer = document.getElementById('duplicates-container');
+const ignoredGrid = document.getElementById('ignored-grid');
 const blurCount = document.getElementById('blur-count');
 const dupCount = document.getElementById('dup-count');
+const ignoredCount = document.getElementById('ignored-count');
+const ignoredBlurBtn = document.getElementById('ignored-type-blur');
+const ignoredDupBtn = document.getElementById('ignored-type-dup');
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
@@ -49,6 +55,27 @@ const blurInfo = document.getElementById('blur-page-info');
 const dupPrev = document.getElementById('dup-prev');
 const dupNext = document.getElementById('dup-next');
 const dupInfo = document.getElementById('dup-page-info');
+
+const ignoredPrev = document.getElementById('ignored-prev');
+const ignoredNext = document.getElementById('ignored-next');
+const ignoredInfo = document.getElementById('ignored-page-info');
+
+if (ignoredBlurBtn && ignoredDupBtn) {
+    ignoredBlurBtn.addEventListener('click', () => {
+        ignoredType = 'blur';
+        ignoredBlurBtn.className = 'btn primary';
+        ignoredDupBtn.className = 'btn secondary';
+        ignoredPage = 1;
+        fetchIgnored();
+    });
+    ignoredDupBtn.addEventListener('click', () => {
+        ignoredType = 'duplicate';
+        ignoredDupBtn.className = 'btn primary';
+        ignoredBlurBtn.className = 'btn secondary';
+        ignoredPage = 1;
+        fetchIgnored();
+    });
+}
 
 // Setup Tabs
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -113,6 +140,11 @@ blurNext.addEventListener('click', () => { blurPage++; fetchBlurred(); });
 dupPrev.addEventListener('click', () => { if (dupPage > 1) { dupPage--; fetchDuplicates(); } });
 dupNext.addEventListener('click', () => { dupPage++; fetchDuplicates(); });
 
+if (ignoredPrev) {
+    ignoredPrev.addEventListener('click', () => { if (ignoredPage > 1) { ignoredPage--; fetchIgnored(); } });
+    ignoredNext.addEventListener('click', () => { ignoredPage++; fetchIgnored(); });
+}
+
 async function fetchBlurred() {
     try {
         const res = await fetch(`/api/images/blurred?page=${blurPage}&limit=${LIMIT}&threshold=${currentThreshold}`);
@@ -125,7 +157,7 @@ async function fetchBlurred() {
         
         blurredGrid.innerHTML = '';
         data.images.forEach(img => {
-            blurredGrid.appendChild(createCard(img));
+            blurredGrid.appendChild(createCard(img, 'blurred'));
         });
     } catch (err) {
         console.error(err);
@@ -151,7 +183,7 @@ async function fetchDuplicates() {
             const grid = document.createElement('div');
             grid.className = 'duplicate-grid';
             
-            group.forEach(img => grid.appendChild(createCard(img)));
+            group.forEach(img => grid.appendChild(createCard(img, 'duplicates')));
             groupEl.appendChild(grid);
             duplicatesContainer.appendChild(groupEl);
         });
@@ -160,11 +192,41 @@ async function fetchDuplicates() {
     }
 }
 
-function createCard(img) {
+async function fetchIgnored() {
+    try {
+        const res = await fetch(`/api/images/ignored?page=${ignoredPage}&limit=${LIMIT}&type=${ignoredType}`);
+        const data = await res.json();
+        
+        ignoredCount.textContent = data.total;
+        if (ignoredInfo) ignoredInfo.textContent = `Page ${data.page} of ${data.total_pages || 1}`;
+        if (ignoredPrev) ignoredPrev.disabled = data.page <= 1;
+        if (ignoredNext) ignoredNext.disabled = data.page >= data.total_pages;
+        
+        if (ignoredGrid) {
+            ignoredGrid.innerHTML = '';
+            data.images.forEach(img => {
+                ignoredGrid.appendChild(createCard(img, 'ignored'));
+            });
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function createCard(img, context = 'blurred') {
+    const isIgnored = context === 'ignored';
+    const ignoreType = isIgnored ? ignoredType : (context === 'blurred' ? 'blur' : 'duplicate');
+
+    const actionsHtml = isIgnored ?
+        `<button class="btn secondary" onclick="unignoreImage('${img.path.replace(/'/g, "\\'")}', '${ignoreType}')">Unignore</button>
+         <button class="btn danger" onclick="deleteImage('${img.path.replace(/'/g, "\\'")}')">Delete</button>` :
+        `<button class="btn secondary" onclick="ignoreImage('${img.path.replace(/'/g, "\\'")}', '${ignoreType}')">Ignore</button>
+         <button class="btn danger" onclick="deleteImage('${img.path.replace(/'/g, "\\'")}')">Delete</button>`;
+
     const div = document.createElement('div');
     div.className = 'card';
     div.innerHTML = `
-        <div class="card-img-container" style="cursor: pointer;" data-path="${img.path.replace(/"/g, '&quot;')}" data-encoded="${encodeURIComponent(img.path)}" onclick="openPreview(this.dataset.path, this.dataset.encoded)">
+        <div class="card-img-container" style="cursor: pointer;" data-path="${img.path.replace(/"/g, '&quot;')}" data-encoded="${encodeURIComponent(img.path)}" onclick="openPreview(this.dataset.path, this.dataset.encoded, ${isIgnored}, '${ignoreType}')">
             <img src="/api/serve-image/${encodeURIComponent(img.path)}" alt="${img.filename}" loading="lazy">
         </div>
         <div class="card-content">
@@ -177,19 +239,23 @@ function createCard(img) {
                 <div style="font-size: 0.8rem;">Blur Score: ${img.blur_score.toFixed(1)}</div>
             </div>
             <div class="card-actions">
-                <button class="btn secondary" onclick="ignoreImage('${img.path}')">Ignore</button>
-                <button class="btn danger" onclick="deleteImage('${img.path}')">Delete</button>
+                ${actionsHtml}
             </div>
         </div>
     `;
     return div;
 }
 
-window.openPreview = function(path, encodedPath) {
+window.openPreview = function(path, encodedPath, isIgnored, ignoreType) {
     previewImg.src = `/api/serve-image/${encodedPath}`;
     previewPath.textContent = path;
     
-    modalIgnoreBtn.onclick = () => { ignoreImage(path); previewModal.close(); };
+    modalIgnoreBtn.textContent = isIgnored ? 'Unignore' : 'Ignore';
+    modalIgnoreBtn.onclick = () => { 
+        if (isIgnored) unignoreImage(path, ignoreType);
+        else ignoreImage(path, ignoreType); 
+        previewModal.close(); 
+    };
     modalDeleteBtn.onclick = () => { deleteImage(path); previewModal.close(); };
     
     previewModal.showModal();
@@ -207,15 +273,26 @@ window.deleteImage = async function(path) {
         await fetch(`/api/images/${encodeURIComponent(path)}`, { method: 'DELETE' });
         fetchBlurred();
         fetchDuplicates();
+        fetchIgnored();
     } catch(err) { alert('Failed to delete image'); }
 }
 
-window.ignoreImage = async function(path) {
+window.ignoreImage = async function(path, type = 'blur') {
     try {
-        await fetch(`/api/images/${encodeURIComponent(path)}/ignore`, { method: 'POST' });
+        await fetch(`/api/images/${encodeURIComponent(path)}/ignore?type=${type}`, { method: 'POST' });
         fetchBlurred();
         fetchDuplicates();
+        fetchIgnored();
     } catch(err) { alert('Failed to ignore image'); }
+}
+
+window.unignoreImage = async function(path, type = 'blur') {
+    try {
+        await fetch(`/api/images/${encodeURIComponent(path)}/unignore?type=${type}`, { method: 'POST' });
+        fetchBlurred();
+        fetchDuplicates();
+        fetchIgnored();
+    } catch(err) { alert('Failed to unignore image'); }
 }
 
 async function pollStatus() {
@@ -290,6 +367,7 @@ fetchVersion();
 fetchSettings();
 fetchBlurred();
 fetchDuplicates();
+fetchIgnored();
 pollStatus();
 
 setInterval(pollStatus, 3000);

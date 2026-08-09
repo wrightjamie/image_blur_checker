@@ -40,6 +40,7 @@
             <div class="tabs">
                 <button class="tab-btn active" data-tab="blurred">Blurred Images (<span id="blur-count">0</span>)</button>
                 <button class="tab-btn" data-tab="duplicates">Duplicates (<span id="dup-count">0</span>)</button>
+                <button class="tab-btn" data-tab="ignored">Ignored (<span id="ignored-count">0</span>)</button>
                 <button class="tab-btn" data-tab="settings">Settings</button>
             </div>
 
@@ -62,6 +63,21 @@
                     <button class="btn secondary" id="dup-prev">Previous</button>
                     <span id="dup-page-info">Page 1 of 1</span>
                     <button class="btn secondary" id="dup-next">Next</button>
+                </div>
+            </section>
+
+            <section id="ignored-tab" class="tab-content">
+                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                    <button id="ignored-type-blur" class="btn primary">Ignored: Blur</button>
+                    <button id="ignored-type-dup" class="btn secondary">Ignored: Duplicates</button>
+                </div>
+                <div class="grid" id="ignored-grid">
+                    <!-- Cards will be injected here -->
+                </div>
+                <div class="pagination" id="ignored-pagination">
+                    <button class="btn secondary" id="ignored-prev">Previous</button>
+                    <span id="ignored-page-info">Page 1 of 1</span>
+                    <button class="btn secondary" id="ignored-next">Next</button>
                 </div>
             </section>
 

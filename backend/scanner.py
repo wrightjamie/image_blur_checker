@@ -104,7 +104,8 @@ class Scanner:
                         filename=os.path.basename(filepath),
                         file_hash=file_hash,
                         blur_score=blur_score,
-                        is_ignored=False,
+                        ignore_blur=False,
+                        ignore_duplicate=False,
                         filesize=filesize
                     )
                 except Exception as e:
