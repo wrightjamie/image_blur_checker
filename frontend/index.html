@@ -78,6 +78,25 @@
             </section>
         </main>
     </div>
+
+    <dialog id="preview-modal">
+        <div class="modal-content">
+            <form method="dialog" style="margin:0; padding:0;">
+                <button class="close-btn" aria-label="Close modal">&times;</button>
+            </form>
+            <div class="modal-img-container">
+                <img id="preview-img" src="" alt="Preview">
+            </div>
+            <div class="modal-details">
+                <p id="preview-path" class="path-text"></p>
+                <div class="modal-actions">
+                    <button id="modal-ignore-btn" class="btn secondary">Ignore</button>
+                    <button id="modal-delete-btn" class="btn danger">Delete</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
     <script src="/static/app.js?v=1.1.0"></script>
 </body>
 </html>

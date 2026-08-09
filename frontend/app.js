@@ -34,6 +34,13 @@ const progText = document.getElementById('scan-progress-text');
 const progBar = document.getElementById('scan-progress-bar');
 const scanBtn = document.getElementById('scan-btn');
 
+// Modal Elements
+const previewModal = document.getElementById('preview-modal');
+const previewImg = document.getElementById('preview-img');
+const previewPath = document.getElementById('preview-path');
+const modalIgnoreBtn = document.getElementById('modal-ignore-btn');
+const modalDeleteBtn = document.getElementById('modal-delete-btn');
+
 // Pagination Buttons
 const blurPrev = document.getElementById('blur-prev');
 const blurNext = document.getElementById('blur-next');
@@ -136,7 +143,7 @@ function createCard(img) {
     const div = document.createElement('div');
     div.className = 'card';
     div.innerHTML = `
-        <div class="card-img-container">
+        <div class="card-img-container" style="cursor: pointer;" data-path="${img.path.replace(/"/g, '&quot;')}" data-encoded="${encodeURIComponent(img.path)}" onclick="openPreview(this.dataset.path, this.dataset.encoded)">
             <img src="/api/serve-image/${encodeURIComponent(img.path)}" alt="${img.filename}" loading="lazy">
         </div>
         <div class="card-content">
@@ -156,6 +163,22 @@ function createCard(img) {
     `;
     return div;
 }
+
+window.openPreview = function(path, encodedPath) {
+    previewImg.src = `/api/serve-image/${encodedPath}`;
+    previewPath.textContent = path;
+    
+    modalIgnoreBtn.onclick = () => { ignoreImage(path); previewModal.close(); };
+    modalDeleteBtn.onclick = () => { deleteImage(path); previewModal.close(); };
+    
+    previewModal.showModal();
+}
+
+previewModal.addEventListener('click', (e) => {
+    if (e.target === previewModal) {
+        previewModal.close();
+    }
+});
 
 window.deleteImage = async function(path) {
     if (!confirm('Are you sure you want to permanently delete this image from your filesystem?')) return;
