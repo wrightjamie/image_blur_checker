@@ -171,6 +171,17 @@ def update_settings(settings: SettingsUpdate):
     # filter empty strings
     patterns = [p.strip() for p in settings.ignore_patterns if p.strip()]
     scanner.state.ignore_patterns = patterns
+    
+    import fnmatch
+    retro_remove = []
+    for rel_path in scanner.state.images:
+        for pattern in patterns:
+            if fnmatch.fnmatch(rel_path, pattern):
+                retro_remove.append(rel_path)
+                break
+    for rel_path in retro_remove:
+        del scanner.state.images[rel_path]
+        
     scanner.save_state()
     return {"status": "Settings updated", "ignore_patterns": scanner.state.ignore_patterns}
 
