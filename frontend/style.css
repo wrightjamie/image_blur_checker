@@ -196,6 +196,7 @@ input[type=range] {
     height: 200px;
     overflow: hidden;
     background: #000;
+    position: relative;
 }
 
 .card-img-container img {
@@ -207,6 +208,31 @@ input[type=range] {
 
 .card:hover .card-img-container img {
     transform: scale(1.05);
+}
+
+.card.selected {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 2px #22c55e;
+    transform: scale(0.98);
+}
+
+.card.selected .card-img-container::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #22c55e;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    z-index: 10;
 }
 
 .card-content {

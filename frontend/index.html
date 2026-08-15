@@ -22,7 +22,14 @@
                     </div>
                 </div>
             </div>
-            <div class="actions">
+            <div class="actions" style="display: flex; align-items: center;">
+                <div id="selection-actions" style="display: none; margin-right: 10px; align-items: center; gap: 10px;">
+                    <span id="selection-count">0 selected</span>
+                    <button id="select-all-btn" class="btn secondary">Select All</button>
+                    <button id="cancel-selection-btn" class="btn secondary">Cancel</button>
+                    <button id="delete-selected-btn" class="btn danger">Delete Selected</button>
+                </div>
+                <button id="toggle-selection-btn" class="btn secondary" style="margin-right: 10px;">Select Images</button>
                 <button id="check-files-btn" class="btn secondary" style="margin-right: 10px;" title="Check database against file system">Check Files</button>
                 <button id="scan-btn" class="btn primary">Run Scan in Background</button>
             </div>

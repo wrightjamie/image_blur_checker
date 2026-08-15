@@ -3,6 +3,8 @@ let blurPage = 1;
 let dupPage = 1;
 let ignoredPage = 1;
 let ignoredType = 'blur';
+let selectionMode = false;
+let selectedImages = new Set();
 const LIMIT = 50;
 const DUP_LIMIT = 10;
 
@@ -59,6 +61,13 @@ const dupInfo = document.getElementById('dup-page-info');
 const ignoredPrev = document.getElementById('ignored-prev');
 const ignoredNext = document.getElementById('ignored-next');
 const ignoredInfo = document.getElementById('ignored-page-info');
+
+const toggleSelectionBtn = document.getElementById('toggle-selection-btn');
+const selectionActions = document.getElementById('selection-actions');
+const selectAllBtn = document.getElementById('select-all-btn');
+const cancelSelectionBtn = document.getElementById('cancel-selection-btn');
+const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+const selectionCount = document.getElementById('selection-count');
 
 if (ignoredBlurBtn && ignoredDupBtn) {
     ignoredBlurBtn.addEventListener('click', () => {
@@ -145,6 +154,39 @@ if (ignoredPrev) {
     ignoredNext.addEventListener('click', () => { ignoredPage++; fetchIgnored(); });
 }
 
+if (toggleSelectionBtn) {
+    toggleSelectionBtn.addEventListener('click', () => {
+        selectionMode = true;
+        toggleSelectionBtn.style.display = 'none';
+        selectionActions.style.display = 'flex';
+        selectedImages.clear();
+        updateSelectionUI();
+    });
+    cancelSelectionBtn.addEventListener('click', () => {
+        selectionMode = false;
+        toggleSelectionBtn.style.display = 'block';
+        selectionActions.style.display = 'none';
+        selectedImages.clear();
+        document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    });
+    selectAllBtn.addEventListener('click', () => {
+        document.querySelectorAll('.card-img-container').forEach(el => {
+            const path = el.dataset.path;
+            if (path && !selectedImages.has(path)) {
+                selectedImages.add(path);
+                el.closest('.card').classList.add('selected');
+            }
+        });
+        updateSelectionUI();
+    });
+    deleteSelectedBtn.addEventListener('click', deleteSelectedImages);
+}
+
+function updateSelectionUI() {
+    selectionCount.textContent = `${selectedImages.size} selected`;
+    deleteSelectedBtn.disabled = selectedImages.size === 0;
+}
+
 async function fetchBlurred() {
     try {
         const res = await fetch(`/api/images/blurred?page=${blurPage}&limit=${LIMIT}&threshold=${currentThreshold}`);
@@ -219,14 +261,17 @@ function createCard(img, context = 'blurred') {
 
     const actionsHtml = isIgnored ?
         `<button class="btn secondary" onclick="unignoreImage('${img.path.replace(/'/g, "\\'")}', '${ignoreType}')">Unignore</button>
-         <button class="btn danger" onclick="deleteImage('${img.path.replace(/'/g, "\\'")}')">Delete</button>` :
+         <button class="btn danger" onclick="deleteImage('${img.path.replace(/'/g, "\\'")}', this)">Delete</button>` :
         `<button class="btn secondary" onclick="ignoreImage('${img.path.replace(/'/g, "\\'")}', '${ignoreType}')">Ignore</button>
-         <button class="btn danger" onclick="deleteImage('${img.path.replace(/'/g, "\\'")}')">Delete</button>`;
+         <button class="btn danger" onclick="deleteImage('${img.path.replace(/'/g, "\\'")}', this)">Delete</button>`;
 
     const div = document.createElement('div');
     div.className = 'card';
+    if (selectionMode && selectedImages.has(img.path)) {
+        div.classList.add('selected');
+    }
     div.innerHTML = `
-        <div class="card-img-container" style="cursor: pointer;" data-path="${img.path.replace(/"/g, '&quot;')}" data-encoded="${encodeURIComponent(img.path)}" onclick="openPreview(this.dataset.path, this.dataset.encoded, ${isIgnored}, '${ignoreType}')">
+        <div class="card-img-container" style="cursor: pointer;" data-path="${img.path.replace(/"/g, '&quot;')}" data-encoded="${encodeURIComponent(img.path)}" onclick="handleImageClick(this, this.dataset.path, this.dataset.encoded, ${isIgnored}, '${ignoreType}')">
             <img src="/api/serve-image/${encodeURIComponent(img.path)}" alt="${img.filename}" loading="lazy">
         </div>
         <div class="card-content">
@@ -244,6 +289,22 @@ function createCard(img, context = 'blurred') {
         </div>
     `;
     return div;
+}
+
+window.handleImageClick = function(element, path, encodedPath, isIgnored, ignoreType) {
+    if (selectionMode) {
+        const card = element.closest('.card');
+        if (selectedImages.has(path)) {
+            selectedImages.delete(path);
+            card.classList.remove('selected');
+        } else {
+            selectedImages.add(path);
+            card.classList.add('selected');
+        }
+        updateSelectionUI();
+    } else {
+        openPreview(path, encodedPath, isIgnored, ignoreType);
+    }
 }
 
 window.openPreview = function(path, encodedPath, isIgnored, ignoreType) {
@@ -267,14 +328,63 @@ previewModal.addEventListener('click', (e) => {
     }
 });
 
-window.deleteImage = async function(path) {
+window.deleteImage = async function(path, buttonElement = null) {
     if (!confirm('Are you sure you want to permanently delete this image from your filesystem?')) return;
+    
+    let card = null;
+    if (buttonElement) {
+        card = buttonElement.closest('.card');
+    } else {
+        const el = document.querySelector(`.card-img-container[data-path="${path.replace(/"/g, '\\"')}"]`);
+        if (el) card = el.closest('.card');
+    }
+    
+    if (card) card.style.display = 'none';
+
     try {
         await fetch(`/api/images/${encodeURIComponent(path)}`, { method: 'DELETE' });
         fetchBlurred();
         fetchDuplicates();
         fetchIgnored();
-    } catch(err) { alert('Failed to delete image'); }
+    } catch(err) { 
+        alert('Failed to delete image'); 
+        if (card) card.style.display = ''; 
+    }
+}
+
+window.deleteSelectedImages = async function() {
+    if (selectedImages.size === 0) return;
+    if (!confirm(`Are you sure you want to permanently delete ${selectedImages.size} images?`)) return;
+
+    const paths = Array.from(selectedImages);
+    const cardsToHide = [];
+    
+    paths.forEach(path => {
+        const el = document.querySelector(`.card-img-container[data-path="${path.replace(/"/g, '\\"')}"]`);
+        if (el) {
+            const card = el.closest('.card');
+            if (card) {
+                card.style.display = 'none';
+                cardsToHide.push(card);
+            }
+        }
+    });
+
+    cancelSelectionBtn.click(); // Exit selection mode
+
+    try {
+        await fetch('/api/images/delete-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: paths })
+        });
+        fetchBlurred();
+        fetchDuplicates();
+        fetchIgnored();
+    } catch (err) {
+        alert('Failed to delete some or all images');
+        cardsToHide.forEach(c => c.style.display = '');
+    }
 }
 
 window.ignoreImage = async function(path, type = 'blur') {

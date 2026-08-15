@@ -173,6 +173,30 @@ def delete_image(path: str):
     scanner.save_state()
     return {"status": "Deleted"}
 
+from pydantic import BaseModel
+
+class BatchDeleteRequest(BaseModel):
+    paths: list[str]
+
+@app.post("/api/images/delete-batch")
+def delete_images_batch(req: BatchDeleteRequest):
+    deleted_count = 0
+    for path in req.paths:
+        if path in scanner.state.images:
+            full_path = os.path.join(IMAGE_DIR, path)
+            if os.path.exists(full_path):
+                try:
+                    os.remove(full_path)
+                except OSError:
+                    pass
+            del scanner.state.images[path]
+            deleted_count += 1
+            
+    if deleted_count > 0:
+        scanner.save_state()
+        
+    return {"status": "Batch deleted", "count": deleted_count}
+
 @app.post("/api/images/{path:path}/ignore")
 def ignore_image(path: str, type: str = "blur"):
     if path not in scanner.state.images:
