@@ -179,7 +179,9 @@ if (toggleSelectionBtn) {
         });
         updateSelectionUI();
     });
-    deleteSelectedBtn.addEventListener('click', deleteSelectedImages);
+    deleteSelectedBtn.addEventListener('click', () => {
+        if (window.deleteSelectedImages) window.deleteSelectedImages();
+    });
 }
 
 function updateSelectionUI() {
@@ -188,6 +190,7 @@ function updateSelectionUI() {
 }
 
 async function fetchBlurred() {
+    if (blurredGrid) blurredGrid.innerHTML = '<div class="loader">Loading images...</div>';
     try {
         const res = await fetch(`/api/images/blurred?page=${blurPage}&limit=${LIMIT}&threshold=${currentThreshold}`);
         const data = await res.json();
@@ -207,6 +210,7 @@ async function fetchBlurred() {
 }
 
 async function fetchDuplicates() {
+    if (duplicatesContainer) duplicatesContainer.innerHTML = '<div class="loader">Loading duplicates...</div>';
     try {
         const res = await fetch(`/api/images/duplicates?page=${dupPage}&limit=${DUP_LIMIT}`);
         const data = await res.json();
@@ -235,6 +239,7 @@ async function fetchDuplicates() {
 }
 
 async function fetchIgnored() {
+    if (ignoredGrid) ignoredGrid.innerHTML = '<div class="loader">Loading ignored images...</div>';
     try {
         const res = await fetch(`/api/images/ignored?page=${ignoredPage}&limit=${LIMIT}&type=${ignoredType}`);
         const data = await res.json();

@@ -380,3 +380,12 @@ dialog#preview-modal::backdrop {
     gap: 1rem;
     justify-content: flex-end;
 }
+
+.loader {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: #94a3b8;
+    width: 100%;
+    grid-column: 1 / -1;
+}
